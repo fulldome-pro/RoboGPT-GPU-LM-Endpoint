@@ -1,0 +1,28 @@
+swagger: '2.0'
+info:
+  version: '1.0'
+  title: Evaluate API
+paths:
+  /evaluate:
+    post:
+      summary: Generate text based on an instruction and input
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          schema:
+            type: object
+            properties:
+              instruction:
+                type: string
+              input:
+                type: string
+      responses:
+        200:
+          description: Generated text
+          schema:
+            type: object
+            properties:
+              response:
+                type: string
