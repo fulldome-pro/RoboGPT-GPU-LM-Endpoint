@@ -6,12 +6,18 @@ from transformers import LLaMATokenizer, LLaMAForCausalLM, GenerationConfig
 
 def create_app():
     app = Flask(__name__)
-    api = Api(app, version='1.0', title='GPT API',
-        description='GPT API')
+    api = Api(app, version='1.0', title='Model API',
+        description='Mopdel API')
     
-    instruction_input = api.model('InstructionInput', {
+    generate_input = api.model('GenerateInput', {
         'instruction': fields.String(required=True, description='The instruction to evaluate'),
         'input': fields.String(required=True, description='The input to use in the evaluation')
+    })
+
+    translate_input = api.model('TranslateInput', {
+        'source': fields.String(required=True, description='Source language'),
+        'dest': fields.String(required=True, description='Destination language'),
+        'input': fields.String(required=True, description='Text to translate')
     })
     
     print("🚀 Loading tokenizer...");
@@ -50,12 +56,22 @@ def create_app():
 
     ### Response:"""
 
+    def generate_translation_prompt(source, dest, input):
+        return f"""Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
-    @api.route('/evaluate')
-    class Evaluate(Resource):
-        @api.expect(instruction_input, validate=True)
+    ### Instruction:
+    Please translate text from {source} language to {dest} language
+
+    ### Input:
+    {input}
+
+    ### Response:"""
+
+    @api.route('/generate')
+    class Generate(Resource):
+        @api.expect(generate_input, validate=True)
         def post(self):
-            """Evaluates instruction and input and returns the result"""
+            """Generate with evaluates instruction and input and returns the result"""
             instruction = request.json.get('instruction')
             input = request.json.get('input')
 
@@ -74,8 +90,34 @@ def create_app():
                 response = output.split("### Response:")[1].strip()
             return jsonify(response=response)
 
+
+    @api.route('/translate')
+    class Translate(Resource):
+        @api.expect(translate_input, validate=True)
+        def post(self):
+            """Translate"""
+            source = request.json.get('source')
+            dest = request.json.get('dest')
+            input = request.json.get('input')
+
+            prompt = generate_translation_prompt(source, dest, input)
+            inputs = tokenizer(prompt, return_tensors="pt")
+            input_ids = inputs["input_ids"].cuda()
+            generation_output = model.generate(
+                input_ids=input_ids,
+                generation_config=generation_config,
+                return_dict_in_generate=True,
+                output_scores=True,
+                max_new_tokens=256
+            )
+            for s in generation_output.sequences:
+                output = tokenizer.decode(s)
+                response = output.split("### Response:")[1].strip()
+            return jsonify(response=response)
+
     return app
+
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True, use_reloader=False)
+    app.run(host='0.0.0.0',debug=True, use_reloader=False)
