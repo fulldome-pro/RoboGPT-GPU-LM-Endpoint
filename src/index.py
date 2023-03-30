@@ -8,7 +8,11 @@ def create_app():
     app = Flask(__name__)
     api = Api(app, version='1.0', title='Model API',
         description='Mopdel API')
-    
+
+    plain_input = api.model('PlainInput', {
+        'text': fields.String(required=True, description='Plain text'),
+    })
+
     generate_input = api.model('GenerateInput', {
         'instruction': fields.String(required=True, description='The instruction to evaluate'),
         'input': fields.String(required=True, description='The input to use in the evaluation')
@@ -20,6 +24,7 @@ def create_app():
         'input': fields.String(required=True, description='Text to translate')
     })
     
+    '''
     print("🚀 Loading tokenizer...");
     tokenizer = LLaMATokenizer.from_pretrained("decapoda-research/llama-7b-hf")
     print("🚀 Loading model...");
@@ -36,6 +41,10 @@ def create_app():
         top_p=0.75,
         num_beams=4,
     )
+    '''
+
+    def generate_plain(text):
+        return f"""{text}"""
 
     def generate_prompt(instruction, input=None):
         if input:
@@ -67,6 +76,30 @@ def create_app():
 
     ### Response:"""
 
+    @api.route('/plain')
+    class Plain(Resource):
+        @api.expect(plain_input, validate=True)
+        def post(self):
+            """Generate plain"""
+            text = request.json.get('text')
+
+            prompt = generate_plain(text)
+            print(prompt);
+
+            inputs = tokenizer(prompt, return_tensors="pt")
+            input_ids = inputs["input_ids"].cuda()
+            generation_output = model.generate(
+                input_ids=input_ids,
+                generation_config=generation_config,
+                return_dict_in_generate=True,
+                output_scores=True,
+                max_new_tokens=256
+            )
+            for s in generation_output.sequences:
+                output = tokenizer.decode(s)
+                response = output.split("### Response:")[1].strip()
+            return jsonify(response=response)
+
     @api.route('/generate')
     class Generate(Resource):
         @api.expect(generate_input, validate=True)
@@ -77,7 +110,7 @@ def create_app():
 
             prompt = generate_prompt(instruction, input)
             print(prompt);
-            
+
             inputs = tokenizer(prompt, return_tensors="pt")
             input_ids = inputs["input_ids"].cuda()
             generation_output = model.generate(
@@ -117,6 +150,8 @@ def create_app():
             for s in generation_output.sequences:
                 output = tokenizer.decode(s)
                 response = output.split("### Response:")[1].strip()
+            print("response:");
+            print(response);
             return jsonify(response=response)
 
     return app
