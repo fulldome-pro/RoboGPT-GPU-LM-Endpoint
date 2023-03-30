@@ -9,7 +9,10 @@ def create_app():
     api = Api(app, version='1.0', title='GPT API',
         description='GPT API')
     
-
+    instruction_input = api.model('InstructionInput', {
+        'instruction': fields.String(required=True, description='The instruction to evaluate'),
+        'input': fields.String(required=True, description='The input to use in the evaluation')
+    })
     
     print("🚀 Loading tokenizer...");
     tokenizer = LLaMATokenizer.from_pretrained("decapoda-research/llama-7b-hf")
@@ -56,6 +59,7 @@ def create_app():
 
     @api.route('/evaluate')
     class Evaluate(Resource):
+        @api.expect(instruction_input, validate=True)
         def post(self):
             """Evaluates instruction and input and returns the result"""
             instruction = request.json.get('instruction')
@@ -75,7 +79,7 @@ def create_app():
                 output = tokenizer.decode(s)
                 response = output.split("### Response:")[1].strip()
             return jsonify(response=response)
-            
+
     return app
 
 if __name__ == '__main__':
