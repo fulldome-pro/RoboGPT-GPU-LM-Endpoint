@@ -54,25 +54,28 @@ def create_app():
             """Returns 'Hello, World!'"""
             return {'message': 'Hello, World!'}
 
-    @app.route('/evaluate', methods=['POST'])
-    def evaluate():
-        instruction = request.json['instruction']
-        input = request.json.get('input', None)
-        prompt = generate_prompt(instruction, input)
-        inputs = tokenizer(prompt, return_tensors="pt")
-        input_ids = inputs["input_ids"].cuda()
-        generation_output = model.generate(
-            input_ids=input_ids,
-            generation_config=generation_config,
-            return_dict_in_generate=True,
-            output_scores=True,
-            max_new_tokens=256
-        )
-        for s in generation_output.sequences:
-            output = tokenizer.decode(s)
-            response = output.split("### Response:")[1].strip()
-        return jsonify(response=response)
+    @api.route('/evaluate')
+    class Evaluate(Resource):
+        def post(self):
+            """Evaluates instruction and input and returns the result"""
+            instruction = request.json.get('instruction')
+            input = request.json.get('input')
 
+            prompt = generate_prompt(instruction, input)
+            inputs = tokenizer(prompt, return_tensors="pt")
+            input_ids = inputs["input_ids"].cuda()
+            generation_output = model.generate(
+                input_ids=input_ids,
+                generation_config=generation_config,
+                return_dict_in_generate=True,
+                output_scores=True,
+                max_new_tokens=256
+            )
+            for s in generation_output.sequences:
+                output = tokenizer.decode(s)
+                response = output.split("### Response:")[1].strip()
+            return jsonify(response=response)
+            
     return app
 
 if __name__ == '__main__':
