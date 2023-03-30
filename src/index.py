@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_restx import Api, Resource
+from flask_restx import Api, Resource, fields
 from peft import PeftModel
 from transformers import LLaMATokenizer, LLaMAForCausalLM, GenerationConfig
 
