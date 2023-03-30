@@ -24,7 +24,7 @@ def create_app():
         'input': fields.String(required=True, description='Text to translate')
     })
     
-    '''
+    
     print("🚀 Loading tokenizer...");
     tokenizer = LLaMATokenizer.from_pretrained("decapoda-research/llama-7b-hf")
     print("🚀 Loading model...");
@@ -41,7 +41,7 @@ def create_app():
         top_p=0.75,
         num_beams=4,
     )
-    '''
+    
 
     def generate_plain(text):
         return f"""{text}"""
