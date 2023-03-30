@@ -50,12 +50,6 @@ def create_app():
 
     ### Response:"""
 
-    
-    @api.route('/hello')
-    class HelloWorld(Resource):
-        def get(self):
-            """Returns 'Hello, World!'"""
-            return {'message': 'Hello, World!'}
 
     @api.route('/evaluate')
     class Evaluate(Resource):
