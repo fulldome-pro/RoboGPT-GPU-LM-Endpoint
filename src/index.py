@@ -76,6 +76,8 @@ def create_app():
             input = request.json.get('input')
 
             prompt = generate_prompt(instruction, input)
+            print(prompt);
+            
             inputs = tokenizer(prompt, return_tensors="pt")
             input_ids = inputs["input_ids"].cuda()
             generation_output = model.generate(
@@ -101,6 +103,8 @@ def create_app():
             input = request.json.get('input')
 
             prompt = generate_translation_prompt(source, dest, input)
+            print(prompt);
+
             inputs = tokenizer(prompt, return_tensors="pt")
             input_ids = inputs["input_ids"].cuda()
             generation_output = model.generate(
