@@ -6,14 +6,19 @@ from transformers import LLaMATokenizer, LLaMAForCausalLM, GenerationConfig
 
 def create_app():
     app = Flask(__name__)
-    api = Api(app, version='1.0', title='Model API',
-        description='Mopdel API')
+    api = Api(app, version='1.0', title='Auto-GPT API',
+        description='Auto-GPT API')
 
     plain_input = api.model('PlainInput', {
         'text': fields.String(required=True, description='Plain text'),
     })
 
     generate_input = api.model('GenerateInput', {
+        'instruction': fields.String(required=True, description='The instruction to evaluate'),
+        'input': fields.String(required=True, description='The input to use in the evaluation')
+    })
+
+    game_input = api.model('GameInput', {
         'instruction': fields.String(required=True, description='The instruction to evaluate'),
         'input': fields.String(required=True, description='The input to use in the evaluation')
     })
@@ -93,7 +98,7 @@ def create_app():
                 generation_config=generation_config,
                 return_dict_in_generate=True,
                 output_scores=True,
-                max_new_tokens=256
+                max_new_tokens=1024
             )
             for s in generation_output.sequences:
                 output = tokenizer.decode(s)
@@ -118,7 +123,33 @@ def create_app():
                 generation_config=generation_config,
                 return_dict_in_generate=True,
                 output_scores=True,
-                max_new_tokens=256
+                max_new_tokens=1024
+            )
+            for s in generation_output.sequences:
+                output = tokenizer.decode(s)
+                response = output.split("### Response:")[1].strip()
+            return jsonify(response=response)
+
+
+    @api.route('/game')
+    class Game(Resource):
+        @api.expect(game_input, validate=True)
+        def post(self):
+            """Generate with evaluates instruction and input and returns the result"""
+            instruction = request.json.get('instruction')
+            input = request.json.get('input')
+
+            prompt = generate_prompt(instruction, input)
+            print(prompt);
+
+            inputs = tokenizer(prompt, return_tensors="pt")
+            input_ids = inputs["input_ids"].cuda()
+            generation_output = model.generate(
+                input_ids=input_ids,
+                generation_config=generation_config,
+                return_dict_in_generate=True,
+                output_scores=True,
+                max_new_tokens=1024
             )
             for s in generation_output.sequences:
                 output = tokenizer.decode(s)
@@ -145,8 +176,8 @@ def create_app():
                 generation_config=generation_config,
                 return_dict_in_generate=True,
                 output_scores=True,
-                max_new_tokens=256
-            )
+                max_new_tokens=1024
+            ) 
             for s in generation_output.sequences:
                 output = tokenizer.decode(s)
                 response = output.split("### Response:")[1].strip()
